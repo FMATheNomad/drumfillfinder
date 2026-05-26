@@ -28,22 +28,6 @@
       ]
     },
     {
-      "name": "worker",
-      "build": {
-        "builder": "DOCKERFILE",
-        "dockerfilePath": "backend/Dockerfile"
-      },
-      "deploy": {
-        "command": "celery -A app.tasks.celery_app worker --loglevel=info --concurrency=1"
-      },
-      "volumes": [
-        {
-          "name": "drumdata",
-          "mountPath": "/data"
-        }
-      ]
-    },
-    {
       "name": "frontend",
       "build": {
         "builder": "DOCKERFILE",

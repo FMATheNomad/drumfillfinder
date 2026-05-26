@@ -20,11 +20,32 @@ No signup, no hassle. Just upload and get your drum transcription.
 | Component | Tech |
 |-----------|------|
 | Frontend | Next.js 14, TypeScript, Tailwind CSS, wavesurfer.js |
-| Backend | Python 3.11, FastAPI, Celery |
+| Backend | Python 3.11, FastAPI |
 | ML | Demucs, HuggingFace transformers, PyTorch |
 | Database | PostgreSQL |
-| Cache/Queue | Redis |
 | Storage | Railway Volume |
-| Deployment | Railway (3 services + add-ons) |
+| Deployment | Railway (2 services + add-ons) |
 
+### Quick deploy
 
+1. Hubungkan repo GitHub ke Railway
+2. Add PostgreSQL add-on
+3. Create volume `drumdata` mounted at `/data` (for backend)
+4. Set env vars (see below) and deploy
+
+### Environment Variables
+
+#### Backend Service
+| Variable | Value |
+|----------|-------|
+| `PORT` | `8000` |
+| `DATABASE_URL` | (auto dari Railway PostgreSQL) |
+| `UPLOAD_DIR` | `/data/uploads` |
+| `SEPARATED_DIR` | `/data/separated` |
+| `HF_TOKEN` | *(your HuggingFace token)* |
+| `CORS_ORIGINS` | `*` |
+
+#### Frontend Service
+| Variable | Value |
+|----------|-------|
+| `BACKEND_URL` | `http://backend:8000` |

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -6,7 +7,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.config import settings
 from app.db import create_task, get_task, get_transcription
 from app.models import UploadResponse, TranscriptionResult, DrumHit
-from app.tasks.drum_tasks import process_drum_audio
+from app.processor import process_drum_audio
 from app.utils import save_upload
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ async def upload_audio(file: UploadFile = File(...)):
 
     file_path, task_id = save_upload(contents, file.filename)
     await create_task(task_id)
-    process_drum_audio.delay(task_id, file_path)
+    asyncio.create_task(process_drum_audio(task_id, file_path))
 
     logger.info("Upload success: task_id=%s, file=%s", task_id, file.filename)
     return UploadResponse(task_id=task_id)
