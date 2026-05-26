@@ -27,12 +27,4 @@ No signup, no hassle. Just upload and get your drum transcription.
 | Storage | Railway Volume |
 | Deployment | Railway (3 services + add-ons) |
 
-### Quick deploy
 
-Deploy all three services on Railway:
-
-1. Add PostgreSQL and Redis add-ons
-2. Create a volume named `drumdata` mounted at `/data` (backend + worker)
-3. Set environment variables and deploy
-
-See `railway.json` for service definitions.
