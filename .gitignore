@@ -6,3 +6,4 @@ __pycache__/
 .env.local
 *.egg-info/
 dist/
+cookies.txt

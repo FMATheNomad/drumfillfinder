@@ -7,6 +7,14 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+_COOKIES_PATH = os.path.join(os.path.dirname(__file__), "cookies.txt")
+
+
+def _cookies_file() -> str | None:
+    if os.path.exists(_COOKIES_PATH):
+        return _COOKIES_PATH
+    return None
+
 
 def _convert_to_mp3(raw_path: str, task_id: str) -> str:
     mp3_path = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
@@ -21,7 +29,8 @@ def _convert_to_mp3(raw_path: str, task_id: str) -> str:
 def _download_pytubefix(url: str, task_id: str) -> str | None:
     try:
         from pytubefix import YouTube
-        yt = YouTube(url)
+        cookies = _cookies_file()
+        yt = YouTube(url, cookies=cookies) if cookies else YouTube(url)
         stream = yt.streams.get_audio_only()
         if not stream:
             return None
@@ -39,7 +48,7 @@ _UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like 
 
 
 def _base_opts(task_id: str) -> dict:
-    return {
+    opts = {
         "format": "bestaudio/best",
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
@@ -54,6 +63,10 @@ def _base_opts(task_id: str) -> dict:
         "extractor_retries": 3,
         "http_headers": {"User-Agent": _UA},
     }
+    cookies = _cookies_file()
+    if cookies:
+        opts["cookiefile"] = cookies
+    return opts
 
 
 def _try_client(url: str, task_id: str, client: str) -> str | None:
