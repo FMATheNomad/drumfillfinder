@@ -7,7 +7,7 @@ pool: asyncpg.Pool | None = None
 
 async def init_db(dsn: str):
     global pool
-    pool = await asyncpg.create_pool(dsn, min_size=1, max_size=5, command_timeout=5)
+    pool = await asyncpg.create_pool(dsn, min_size=1, max_size=5, timeout=5, command_timeout=5)
     async with pool.acquire() as conn:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
