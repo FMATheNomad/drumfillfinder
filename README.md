@@ -12,9 +12,8 @@ No signup, no hassle. Just upload and get your drum transcription.
 
 1. Hubungkan repo GitHub ke Railway
 2. Add PostgreSQL add-on
-3. Create volume `drumdata` mount ke `/data`
-4. Set env `HF_TOKEN` (token HuggingFace)
-5. Deploy
+3. Set env `HF_TOKEN` (token HuggingFace)
+4. Deploy
 
 ### Env Variables
 
