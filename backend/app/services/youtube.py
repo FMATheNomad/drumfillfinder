@@ -35,26 +35,51 @@ def _download_pytubefix(url: str, task_id: str) -> str | None:
         raise RuntimeError(f"Download gagal: {e}")
 
 
-def _try_ytdlp_client(url: str, task_id: str, client: str) -> str | None:
-    from yt_dlp import YoutubeDL
-    output = os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s")
-    ydl_opts = {
+_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.159 Mobile Safari/537.36"
+
+
+def _base_opts(task_id: str) -> dict:
+    return {
         "format": "bestaudio/best",
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
             "preferredquality": "128",
         }],
-        "outtmpl": output,
+        "outtmpl": os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
         "retries": 3,
         "extractor_retries": 3,
-        "extractor_args": {"youtube": {"player_client": [client]}},
+        "http_headers": {"User-Agent": _UA},
     }
-    with YoutubeDL(ydl_opts) as ydl:
+
+
+def _try_client(url: str, task_id: str, client: str) -> str | None:
+    from yt_dlp import YoutubeDL
+    opts = _base_opts(task_id)
+    opts["extractor_args"] = {"youtube": {"player_client": [client]}}
+    with YoutubeDL(opts) as ydl:
         ydl.download([url])
+    return _find_file(task_id)
+
+
+def _try_client_skip(url: str, task_id: str, client: str) -> str | None:
+    from yt_dlp import YoutubeDL
+    opts = _base_opts(task_id)
+    opts["extractor_args"] = {
+        "youtube": {
+            "player_client": [client],
+            "player_skip": ["webpage", "configs"],
+        }
+    }
+    with YoutubeDL(opts) as ydl:
+        ydl.download([url])
+    return _find_file(task_id)
+
+
+def _find_file(task_id: str) -> str | None:
     expected = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
     if os.path.exists(expected):
         return expected
@@ -65,15 +90,21 @@ def _try_ytdlp_client(url: str, task_id: str, client: str) -> str | None:
 
 
 def _download_ytdlp(url: str, task_id: str) -> str | None:
-    clients = ["android_creative", "ios", "android"]
-    for client in clients:
-        logger.info("Trying yt-dlp with player_client=%s", client)
+    attempts = [
+        ("android_creative", _try_client),
+        ("ios", _try_client),
+        ("android", _try_client),
+        ("android_creative+skip", lambda u, t, c: _try_client_skip(u, t, "android_creative")),
+        ("ios+skip", lambda u, t, c: _try_client_skip(u, t, "ios")),
+    ]
+    for label, fn in attempts:
+        logger.info("Trying yt-dlp: %s", label)
         try:
-            result = _try_ytdlp_client(url, task_id, client)
+            result = fn(url, task_id, label.split("+")[0])
             if result:
                 return result
         except Exception as e:
-            logger.warning("yt-dlp %s failed: %s", client, e)
+            logger.warning("yt-dlp %s failed: %s", label, e)
     raise RuntimeError("yt-dlp gagal dengan semua client")
 
 
