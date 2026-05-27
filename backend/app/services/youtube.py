@@ -20,7 +20,7 @@ def _cookies_file() -> str | None:
         return _cookies_cache
 
     try:
-        from app.services.cookies_data import COOKIES_DATA
+        from app.cookies_data import COOKIES_DATA
         raw = gzip.decompress(base64.b64decode(COOKIES_DATA)).decode()
         f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
         f.write(raw)
