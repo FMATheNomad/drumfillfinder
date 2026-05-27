@@ -1,8 +1,9 @@
 import logging
 import os
+import subprocess
 import uuid
 
-from yt_dlp import YoutubeDL
+from pytubefix import YouTube
 
 from app.config import settings
 
@@ -11,39 +12,23 @@ logger = logging.getLogger(__name__)
 
 def download_audio(url: str) -> tuple[str, str]:
     task_id = str(uuid.uuid4())
-    output = os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s")
-
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "128",
-        }],
-        "outtmpl": output,
-        "quiet": True,
-        "no_warnings": True,
-        "noplaylist": True,
-        "retries": 5,
-        "extractor_retries": 5,
-        "extractor_args": {"youtube": {"player_client": ["android"]}},
-    }
 
     logger.info("Downloading YouTube audio: %s", url)
     try:
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        yt = YouTube(url)
+        stream = yt.streams.get_audio_only()
+        if not stream:
+            raise RuntimeError("No audio stream available")
+        raw_path = stream.download(output_path=settings.UPLOAD_DIR)
     except Exception as e:
         raise RuntimeError(f"Download gagal: {e}")
 
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
-    if not os.path.exists(file_path):
-        for f in os.listdir(settings.UPLOAD_DIR):
-            if f.startswith(task_id):
-                file_path = os.path.join(settings.UPLOAD_DIR, f)
-                break
-        else:
-            raise RuntimeError(f"Downloaded file not found for task {task_id}")
+    mp3_path = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
+    subprocess.run(
+        ["ffmpeg", "-i", raw_path, "-q:a", "0", "-map", "a", mp3_path, "-y"],
+        capture_output=True, check=True,
+    )
+    os.remove(raw_path)
 
-    logger.info("Downloaded: %s (task_id=%s)", file_path, task_id)
-    return file_path, task_id
+    logger.info("Downloaded: %s (task_id=%s)", mp3_path, task_id)
+    return mp3_path, task_id
