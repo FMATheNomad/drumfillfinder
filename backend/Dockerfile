@@ -1,5 +1,11 @@
-FROM python:3.11-slim
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
 
+FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     gcc \
@@ -7,10 +13,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend/app/ ./app
+COPY --from=frontend-builder /frontend/out ./frontend
 
 CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT

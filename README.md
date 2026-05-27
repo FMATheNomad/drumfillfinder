@@ -8,44 +8,20 @@ Ever recorded a drum fill and wished you could instantly know exactly what you p
 
 No signup, no hassle. Just upload and get your drum transcription.
 
-### How it works
-
-1. Upload an audio file (max 10 MB)
-2. Backend isolates the drum track via Demucs (`htdemucs_ft`)
-3. A HuggingFace transformer model detects kick, snare, and hi-hat onsets
-4. Results appear as a colour-coded timeline overlay on the waveform
-
-### Tech stack
-
-| Component | Tech |
-|-----------|------|
-| Frontend | Next.js 14, TypeScript, Tailwind CSS, wavesurfer.js |
-| Backend | Python 3.11, FastAPI |
-| ML | Demucs, HuggingFace transformers, PyTorch |
-| Database | PostgreSQL |
-| Storage | Railway Volume |
-| Deployment | Railway (2 services + add-ons) |
-
-### Quick deploy
+### Quick Deploy (Railway, 1 service)
 
 1. Hubungkan repo GitHub ke Railway
 2. Add PostgreSQL add-on
-3. Create volume `drumdata` mounted at `/data` (for backend)
-4. Set env vars (see below) and deploy
+3. Create volume `drumdata` mount ke `/data`
+4. Set env `HF_TOKEN` (token HuggingFace)
+5. Deploy
 
-### Environment Variables
+### Env Variables
 
-#### Backend Service
 | Variable | Value |
 |----------|-------|
-| `PORT` | `8000` |
-| `DATABASE_URL` | (auto dari Railway PostgreSQL) |
+| `DATABASE_URL` | auto dari Railway PostgreSQL |
+| `HF_TOKEN` | token HuggingFace |
 | `UPLOAD_DIR` | `/data/uploads` |
 | `SEPARATED_DIR` | `/data/separated` |
-| `HF_TOKEN` | *(your HuggingFace token)* |
-| `CORS_ORIGINS` | `*` |
-
-#### Frontend Service
-| Variable | Value |
-|----------|-------|
-| `BACKEND_URL` | `http://backend:8000` |
+| `CORS_ORIGINS` | `*` (default) |

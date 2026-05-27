@@ -1,7 +1,9 @@
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db import init_db, close_db
@@ -11,7 +13,7 @@ from app.utils import ensure_dirs
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Drumfillfinder API", version="0.1.0")
+app = FastAPI(title="Drumfillfinder", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +24,11 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api")
+
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+    logger.info("Frontend static files mounted from %s", frontend_dir)
 
 
 @app.on_event("startup")
