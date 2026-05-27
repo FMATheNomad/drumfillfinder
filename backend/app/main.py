@@ -34,7 +34,10 @@ if frontend_dir.exists():
 @app.on_event("startup")
 async def startup():
     ensure_dirs()
-    await init_db(settings.DATABASE_URL)
+    try:
+        await init_db(settings.DATABASE_URL)
+    except Exception as e:
+        logger.warning("Database init failed (will retry on first request): %s", e)
     logger.info("Startup complete")
 
 

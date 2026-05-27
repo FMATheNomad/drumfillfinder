@@ -7,7 +7,7 @@ pool: asyncpg.Pool | None = None
 
 async def init_db(dsn: str):
     global pool
-    pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
+    pool = await asyncpg.create_pool(dsn, min_size=1, max_size=5, command_timeout=5)
     async with pool.acquire() as conn:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
@@ -35,8 +35,15 @@ async def close_db():
         pool = None
 
 
+async def get_pool():
+    if pool is None:
+        raise RuntimeError("Database not initialized. Check DATABASE_URL and PostgreSQL add-on.")
+    return pool
+
+
 async def create_task(task_id: str) -> dict:
-    async with pool.acquire() as conn:
+    p = await get_pool()
+    async with p.acquire() as conn:
         await conn.execute(
             "INSERT INTO tasks (id, status, progress) VALUES ($1, 'PENDING', 0)",
             uuid.UUID(task_id),
@@ -45,7 +52,8 @@ async def create_task(task_id: str) -> dict:
 
 
 async def get_task(task_id: str) -> dict | None:
-    async with pool.acquire() as conn:
+    p = await get_pool()
+    async with p.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT id, status, progress, error_message, created_at FROM tasks WHERE id = $1",
             uuid.UUID(task_id),
@@ -62,7 +70,8 @@ async def get_task(task_id: str) -> dict | None:
 
 
 async def update_task_status(task_id: str, status: str, progress: int = 0, error_message: str | None = None):
-    async with pool.acquire() as conn:
+    p = await get_pool()
+    async with p.acquire() as conn:
         await conn.execute(
             "UPDATE tasks SET status = $1, progress = $2, error_message = $3 WHERE id = $4",
             status, progress, error_message, uuid.UUID(task_id),
@@ -70,7 +79,8 @@ async def update_task_status(task_id: str, status: str, progress: int = 0, error
 
 
 async def insert_transcription(task_id: str, result_json: list, audio_filename: str):
-    async with pool.acquire() as conn:
+    p = await get_pool()
+    async with p.acquire() as conn:
         await conn.execute(
             "INSERT INTO transcriptions (task_id, result_json, audio_filename) VALUES ($1, $2::jsonb, $3)",
             uuid.UUID(task_id), result_json, audio_filename,
@@ -78,7 +88,8 @@ async def insert_transcription(task_id: str, result_json: list, audio_filename: 
 
 
 async def get_transcription(task_id: str) -> dict | None:
-    async with pool.acquire() as conn:
+    p = await get_pool()
+    async with p.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT task_id, result_json, audio_filename, created_at FROM transcriptions WHERE task_id = $1",
             uuid.UUID(task_id),

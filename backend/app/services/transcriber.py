@@ -1,10 +1,6 @@
 import logging
 from typing import Any
 
-import torch
-import librosa
-from transformers import pipeline
-
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -17,6 +13,9 @@ _pipeline = None
 def get_pipeline():
     global _pipeline
     if _pipeline is None:
+        import torch
+        from transformers import pipeline
+
         logger.info("Loading drum transcription model...")
         _pipeline = pipeline(
             "audio-classification",
@@ -30,6 +29,8 @@ def get_pipeline():
 
 
 def transcribe_drum(audio_path: str) -> list[dict[str, Any]]:
+    import librosa
+
     pipe = get_pipeline()
     audio, sr = librosa.load(audio_path, sr=16000, mono=True)
     duration = len(audio) / sr
