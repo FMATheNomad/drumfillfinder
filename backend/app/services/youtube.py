@@ -35,36 +35,46 @@ def _download_pytubefix(url: str, task_id: str) -> str | None:
         raise RuntimeError(f"Download gagal: {e}")
 
 
+def _try_ytdlp_client(url: str, task_id: str, client: str) -> str | None:
+    from yt_dlp import YoutubeDL
+    output = os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s")
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "128",
+        }],
+        "outtmpl": output,
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        "retries": 3,
+        "extractor_retries": 3,
+        "extractor_args": {"youtube": {"player_client": [client]}},
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    expected = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
+    if os.path.exists(expected):
+        return expected
+    for f in os.listdir(settings.UPLOAD_DIR):
+        if f.startswith(task_id):
+            return os.path.join(settings.UPLOAD_DIR, f)
+    return None
+
+
 def _download_ytdlp(url: str, task_id: str) -> str | None:
-    try:
-        from yt_dlp import YoutubeDL
-        output = os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s")
-        ydl_opts = {
-            "format": "bestaudio/best",
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "128",
-            }],
-            "outtmpl": output,
-            "quiet": True,
-            "no_warnings": True,
-            "noplaylist": True,
-            "retries": 5,
-            "extractor_retries": 5,
-            "extractor_args": {"youtube": {"player_client": ["android"]}},
-        }
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        expected = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
-        if os.path.exists(expected):
-            return expected
-        for f in os.listdir(settings.UPLOAD_DIR):
-            if f.startswith(task_id):
-                return os.path.join(settings.UPLOAD_DIR, f)
-        return None
-    except Exception as e:
-        raise RuntimeError(f"Download gagal: {e}")
+    clients = ["android_creative", "ios", "android"]
+    for client in clients:
+        logger.info("Trying yt-dlp with player_client=%s", client)
+        try:
+            result = _try_ytdlp_client(url, task_id, client)
+            if result:
+                return result
+        except Exception as e:
+            logger.warning("yt-dlp %s failed: %s", client, e)
+    raise RuntimeError("yt-dlp gagal dengan semua client")
 
 
 def download_audio(url: str) -> tuple[str, str]:
