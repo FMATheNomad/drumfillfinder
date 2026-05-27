@@ -1,7 +1,8 @@
 import logging
 import os
-import subprocess
 import uuid
+
+from yt_dlp import YoutubeDL
 
 from app.config import settings
 
@@ -10,22 +11,30 @@ logger = logging.getLogger(__name__)
 
 def download_audio(url: str) -> tuple[str, str]:
     task_id = str(uuid.uuid4())
-    output_template = os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s")
+    output = os.path.join(settings.UPLOAD_DIR, f"{task_id}.%(ext)s")
 
-    cmd = [
-        "yt-dlp",
-        "-x",
-        "--audio-format", "mp3",
-        "--audio-quality", "128K",
-        "-o", output_template,
-        "--no-playlist",
-        "--quiet",
-        url,
-    ]
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "128",
+        }],
+        "outtmpl": output,
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        "retries": 5,
+        "extractor_retries": 5,
+        "extractor_args": {"youtube": {"player_client": ["android"]}},
+    }
+
     logger.info("Downloading YouTube audio: %s", url)
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    if result.returncode != 0:
-        raise RuntimeError(f"yt-dlp failed: {result.stderr.strip()}")
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except Exception as e:
+        raise RuntimeError(f"Download gagal: {e}")
 
     file_path = os.path.join(settings.UPLOAD_DIR, f"{task_id}.mp3")
     if not os.path.exists(file_path):
