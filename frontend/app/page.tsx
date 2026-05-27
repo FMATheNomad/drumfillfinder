@@ -18,15 +18,21 @@ export default function Home() {
   const [hits, setHits] = useState<Hit[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [youtubeUrl, setYoutubeUrl] = useState("")
 
-  const handleFileSelect = useCallback((file: File) => {
+  const reset = useCallback(() => {
     setError(null)
     setHits([])
     setTaskId(null)
     setStatus("")
+    setLoading(false)
+  }, [])
+
+  const handleFileSelect = useCallback((file: File) => {
+    reset()
     setAudioFile(file)
     setAudioUrl(URL.createObjectURL(file))
-  }, [])
+  }, [reset])
 
   const handleUpload = useCallback(async () => {
     if (!audioFile) return
@@ -49,6 +55,30 @@ export default function Home() {
       setLoading(false)
     }
   }, [audioFile])
+
+  const handleYoutube = useCallback(async () => {
+    if (!youtubeUrl.trim()) return
+    setLoading(true)
+    reset()
+    setStatus("Mendownload dari YouTube...")
+
+    try {
+      const res = await fetch("/api/youtube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: youtubeUrl.trim() }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setTaskId(data.task_id)
+      setStatus("Memproses...")
+      pollStatus(data.task_id)
+    } catch (e: any) {
+      setError(e.message || "Gagal")
+      setStatus("")
+      setLoading(false)
+    }
+  }, [youtubeUrl, reset])
 
   const pollStatus = useCallback(async (id: string) => {
     const interval = setInterval(async () => {
@@ -99,6 +129,32 @@ export default function Home() {
           error={error}
           hasFile={!!audioFile}
         />
+
+        <div className="relative flex items-center gap-4">
+          <div className="flex-1 border-t border-white/10" />
+          <span className="text-xs text-[var(--text-secondary)]">atau</span>
+          <div className="flex-1 border-t border-white/10" />
+        </div>
+
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={youtubeUrl}
+            onChange={(e) => setYoutubeUrl(e.target.value)}
+            placeholder="https://youtube.com/watch?v=..."
+            className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-white/10 text-sm
+              focus:outline-none focus:border-[var(--accent)] transition-colors"
+            onKeyDown={(e) => e.key === "Enter" && handleYoutube()}
+          />
+          <button
+            onClick={handleYoutube}
+            disabled={loading || !youtubeUrl.trim()}
+            className="px-5 py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm
+              hover:opacity-90 disabled:opacity-50 transition-opacity shrink-0"
+          >
+            Proses
+          </button>
+        </div>
 
         {audioUrl && (
           <div className="relative bg-[var(--bg-card)] rounded-2xl p-4 border border-white/5">

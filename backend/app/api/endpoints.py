@@ -3,15 +3,21 @@ import logging
 from pathlib import Path
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from pydantic import BaseModel
 
 from app.config import settings
 from app.db import create_task, get_task, get_transcription
 from app.models import UploadResponse, TranscriptionResult, DrumHit
 from app.processor import process_drum_audio
 from app.utils import save_upload
+from app.services.youtube import download_audio
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class YoutubeRequest(BaseModel):
+    url: str
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -29,6 +35,20 @@ async def upload_audio(file: UploadFile = File(...)):
     asyncio.create_task(process_drum_audio(task_id, file_path))
 
     logger.info("Upload success: task_id=%s, file=%s", task_id, file.filename)
+    return UploadResponse(task_id=task_id)
+
+
+@router.post("/youtube", response_model=UploadResponse)
+async def youtube_audio(body: YoutubeRequest):
+    try:
+        file_path, task_id = download_audio(body.url)
+    except Exception as e:
+        raise HTTPException(400, f"Gagal download audio: {e}")
+
+    await create_task(task_id)
+    asyncio.create_task(process_drum_audio(task_id, file_path))
+
+    logger.info("YouTube success: task_id=%s, url=%s", task_id, body.url)
     return UploadResponse(task_id=task_id)
 
 
