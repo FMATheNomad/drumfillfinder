@@ -20,27 +20,6 @@ No signup required.
 
 ---
 
-### Quick Deploy (Railway)
-
-1. Connect this GitHub repo to Railway
-2. Add PostgreSQL add-on
-3. Set `HF_TOKEN` as a Railway variable (HuggingFace read token)
-4. Deploy
-
----
-
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | auto | Provided by Railway PostgreSQL add-on |
-| `HF_TOKEN` | yes | HuggingFace token (read) for downloading the transcription model |
-| `UPLOAD_DIR` | no | Upload directory (default: `/tmp/uploads`) |
-| `SEPARATED_DIR` | no | Separated audio directory (default: `/tmp/separated`) |
-| `CORS_ORIGINS` | no | CORS origins (default: `*`) |
-
----
-
 ### Tech Stack
 
 - **Backend**: FastAPI (Python)
@@ -52,13 +31,3 @@ No signup required.
 - **Deployment**: Docker, Railway
 
 ---
-
-### API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/upload` | Upload audio file (multipart form) |
-| `POST` | `/api/youtube` | Submit YouTube URL `{"url": "..."}` |
-| `GET` | `/api/status/{task_id}` | Poll processing status |
-| `GET` | `/api/result/{task_id}` | Get transcription results |
-| `GET` | `/health` | Healthcheck |
