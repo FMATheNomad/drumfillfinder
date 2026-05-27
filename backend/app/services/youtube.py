@@ -50,8 +50,7 @@ def _convert_to_mp3(raw_path: str, task_id: str) -> str:
 def _download_pytubefix(url: str, task_id: str) -> str | None:
     try:
         from pytubefix import YouTube
-        cookies = _cookies_file()
-        yt = YouTube(url, cookies=cookies) if cookies else YouTube(url)
+        yt = YouTube(url)
         stream = yt.streams.get_audio_only()
         if not stream:
             return None
