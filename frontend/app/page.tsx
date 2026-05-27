@@ -27,7 +27,6 @@ export default function Home() {
     setTaskId(null)
     setStatus("")
     setProgress(0)
-    setLoading(false)
   }, [])
 
   const handleFileSelect = useCallback((file: File) => {
@@ -62,10 +61,10 @@ export default function Home() {
 
   const handleYoutube = useCallback(async () => {
     if (!youtubeUrl.trim()) return
-    setLoading(true)
     reset()
     setStatus("Mendownload dari YouTube")
     setProgress(3)
+    setLoading(true)
 
     try {
       const res = await fetch("/api/youtube", {
