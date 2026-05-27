@@ -25,6 +25,12 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api")
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
@@ -45,8 +51,3 @@ async def startup():
 async def shutdown():
     await close_db()
     logger.info("Shutdown complete")
-
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
