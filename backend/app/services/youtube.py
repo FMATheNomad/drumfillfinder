@@ -1,18 +1,39 @@
+import base64
+import gzip
 import logging
 import os
 import subprocess
+import tempfile
 import uuid
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_COOKIES_PATH = os.path.join(os.path.dirname(__file__), "cookies.txt")
+_COOKIES_TXT = os.path.join(os.path.dirname(__file__), "cookies.txt")
+_cookies_cache: str | None = None
 
 
 def _cookies_file() -> str | None:
-    if os.path.exists(_COOKIES_PATH):
-        return _COOKIES_PATH
+    global _cookies_cache
+    if _cookies_cache:
+        return _cookies_cache
+
+    try:
+        from app.services.cookies_data import COOKIES_DATA
+        raw = gzip.decompress(base64.b64decode(COOKIES_DATA)).decode()
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        f.write(raw)
+        f.close()
+        _cookies_cache = f.name
+        return _cookies_cache
+    except Exception:
+        pass
+
+    if os.path.exists(_COOKIES_TXT):
+        _cookies_cache = _COOKIES_TXT
+        return _cookies_cache
+
     return None
 
 
